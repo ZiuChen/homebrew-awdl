@@ -1,0 +1,80 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - 'v*'
+
+jobs:
+  release:
+    runs-on: macos-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Get tag name
+        id: tag
+        run: echo "tag=${GITHUB_REF#refs/tags/}" >> $GITHUB_OUTPUT
+
+      - name: Create Release Archive
+        run: |
+          tar -czf awdl-${{ steps.tag.outputs.tag }}.tar.gz awdl README.md LICENSE install.sh uninstall.sh
+
+      - name: Calculate SHA256
+        id: sha256
+        run: |
+          SHA256=$(shasum -a 256 awdl-${{ steps.tag.outputs.tag }}.tar.gz | cut -d' ' -f1)
+          echo "sha256=$SHA256" >> $GITHUB_OUTPUT
+
+      - name: Update Homebrew Formula
+        run: |
+          sed -i '' "s/PLACEHOLDER_SHA256/${{ steps.sha256.outputs.sha256 }}/g" Formula/awdl.rb
+          sed -i '' "s/v1.0.0/${{ steps.tag.outputs.tag }}/g" Formula/awdl.rb
+
+      - name: Create Release
+        uses: softprops/action-gh-release@v1
+        with:
+          files: |
+            awdl-${{ steps.tag.outputs.tag }}.tar.gz
+          body: |
+            ## AWDL Command Line Tool ${{ steps.tag.outputs.tag }}
+
+            A pure local tool to manage Apple Wireless Direct Link (AWDL) interface on macOS.
+
+            ### Installation
+
+            #### Via Homebrew (Recommended)
+            ```bash
+            brew tap ZiuChen/homebrew-awdl
+            brew install awdl
+            ```
+
+            #### Manual Installation
+            ```bash
+            curl -L https://github.com/ZiuChen/homebrew-awdl/releases/download/${{ steps.tag.outputs.tag }}/awdl-${{ steps.tag.outputs.tag }}.tar.gz | tar xz
+            cd awdl-${{ steps.tag.outputs.tag }}
+            ./install.sh
+            ```
+
+            ### Quick Start
+            ```bash
+            awdl status    # Check current status
+            awdl disable   # Disable AWDL persistently
+            awdl enable    # Re-enable AWDL
+            awdl help      # Show all commands
+            ```
+
+            **SHA256:** ${{ steps.sha256.outputs.sha256 }}
+          draft: false
+          prerelease: false
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Commit updated formula
+        run: |
+          git config --local user.email "action@github.com"
+          git config --local user.name "GitHub Action"
+          git add Formula/awdl.rb
+          git commit -m "Update formula for ${{ steps.tag.outputs.tag }}" || exit 0
+          git push origin HEAD:main
