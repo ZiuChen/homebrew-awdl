@@ -1,7 +1,7 @@
 class Awdl < Formula
   desc "Command line tool to manage Apple Wireless Direct Link (AWDL) interface"
   homepage "https://github.com/ZiuChen/homebrew-awdl"
-  url "https://github.com/ZiuChen/homebrew-awdl/archive/v1.0.0.tar.gz"
+  url "https://github.com/ZiuChen/homebrew-awdl/releases/download/v1.0.0/awdl-v1.0.0.tar.gz"
   sha256 "9b1eafd71dcdc2b24e5cc2fcbc7973f46068181d79e952c77e2071e587ed1703"
   license "MIT"
 
